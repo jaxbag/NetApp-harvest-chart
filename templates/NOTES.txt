@@ -1,0 +1,11 @@
+NetApp Harvest {{ .Chart.AppVersion }} chart rendered for {{ len .Values.pollers }} poller(s).
+
+Metrics Service: {{ include "harvest.fullname" . }}:{{ .Values.service.port }}/metrics
+
+{{- if and .Values.serviceMonitor.enabled (not (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor")) }}
+NOTE: ServiceMonitor is enabled. Its CRD must already be installed by the
+Prometheus Operator before this release is installed.
+{{- end }}
+
+No Helm hooks are used. Externally managed credential and CA Secrets are not
+owned, modified, or deleted by this release.

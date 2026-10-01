@@ -1,0 +1,95 @@
+# ============================================================
+# macOS
+# ============================================================
+
+.DS_Store
+.DS_Store?
+**/.DS_Store
+**/.DS_Store?
+
+# AppleDouble / resource fork metadata
+._*
+**/._*
+
+# Finder metadata
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+
+# macOS filesystem metadata
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+
+# ============================================================
+# Editors / IDE
+# ============================================================
+
+.idea/
+.vscode/
+
+*.swp
+*.swo
+*~
+*.tmp
+
+
+# ============================================================
+# Helm
+# ============================================================
+
+*.tgz
+
+# Local rendered manifests / debug output
+rendered/
+.tmp/
+tmp/
+
+
+# ============================================================
+# Local secrets
+# ============================================================
+
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local secret/value overrides
+values-local.yaml
+values-secret.yaml
+values-secrets.yaml
+values-private.yaml
+secrets.yaml
+secret.yaml
+
+# Age / SOPS temporary files
+*.dec
+*.decrypted
+
+
+# ============================================================
+# Logs
+# ============================================================
+
+*.log
+
+
+# ============================================================
+# Misc
+# ============================================================
+
+*.bak
+*.orig

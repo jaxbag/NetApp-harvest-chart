@@ -1,0 +1,21 @@
+pollers:
+  # Remove the documentation-only default and use deterministic test pollers.
+  configure-me: null
+  alpha:
+    datacenter: test
+    addr: 192.0.2.10
+    auth:
+      username: harvest
+      existingSecret: harvest-alpha
+      passwordKey: password
+  beta:
+    datacenter: test
+    addr: 192.0.2.11
+    auth:
+      username: harvest
+      existingSecret: harvest-beta
+      passwordKey: password
+
+serviceMonitor:
+  enabled: true
+

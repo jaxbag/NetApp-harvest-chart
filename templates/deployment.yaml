@@ -1,0 +1,149 @@
+{{- include "harvest.validateUserMetadata" . -}}
+{{- $deploymentNames := dict -}}
+{{- range $name, $poller := .Values.pollers }}
+{{- $deploymentName := include "harvest.pollerFullname" (dict "root" $ "poller" $name) -}}
+{{- if hasKey $deploymentNames $deploymentName -}}
+{{- fail (printf "pollers %q and %q resolve to duplicate Deployment name %q" (get $deploymentNames $deploymentName) $name $deploymentName) -}}
+{{- end -}}
+{{- $_ := set $deploymentNames $deploymentName $name -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $deploymentName | quote }}
+  labels:
+    {{- include "harvest.commonLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: "poller"
+    harvest.netapp.io/poller: {{ $name | quote }}
+spec:
+  replicas: 1
+  strategy:
+    {{- toYaml $.Values.rollout.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "harvest.selectorLabels" $ | nindent 6 }}
+      harvest.netapp.io/poller: {{ $name | quote }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "harvest.configData" $ | sha256sum | quote }}
+        harvest.netapp.io/restart-token: {{ $.Values.rollout.restartToken | quote }}
+        {{- if $.Values.secrets.create }}
+        checksum/secret: {{ printf "%s:%s" $poller.auth.passwordKey ($poller.auth.password | default "") | sha256sum | quote }}
+        {{- end }}
+        {{- with $.Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "harvest.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: "poller"
+        harvest.netapp.io/poller: {{ $name | quote }}
+        {{- with $.Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      {{- if $.Values.priorityClassName }}
+      priorityClassName: {{ $.Values.priorityClassName | quote }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ $.Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: harvest
+          image: {{ include "harvest.image" $ | quote }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | quote }}
+          args:
+            - --poller
+            - {{ $name | quote }}
+            - --promPort
+            - {{ $.Values.service.port | quote }}
+            - --config
+            - /etc/harvest/harvest.yml
+          env:
+            - name: HARVEST_USERNAME
+              value: {{ $poller.auth.username | quote }}
+            - name: HARVEST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $poller.auth.existingSecret | quote }}
+                  key: {{ $poller.auth.passwordKey | quote }}
+          ports:
+            - name: metrics
+              containerPort: {{ $.Values.service.port }}
+              protocol: TCP
+          securityContext:
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml $.Values.resources | nindent 12 }}
+          {{- if $.Values.startupProbe.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: metrics
+            failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
+            periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.startupProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if $.Values.readinessProbe.enabled }}
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            failureThreshold: {{ $.Values.readinessProbe.failureThreshold }}
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if $.Values.livenessProbe.enabled }}
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            failureThreshold: {{ $.Values.livenessProbe.failureThreshold }}
+            periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/harvest/harvest.yml
+              subPath: harvest.yml
+              readOnly: true
+            - name: config
+              mountPath: /etc/harvest/scripts/{{ $name }}
+              subPath: {{ $name | quote }}
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- if and $.Values.ontapTLS.verify $.Values.ontapTLS.existingCASecret }}
+            - name: ontap-ca
+              mountPath: /etc/harvest/ca
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "harvest.fullname" $ | quote }}
+            defaultMode: 0555
+        - name: tmp
+          emptyDir: {}
+        {{- if and $.Values.ontapTLS.verify $.Values.ontapTLS.existingCASecret }}
+        - name: ontap-ca
+          secret:
+            secretName: {{ $.Values.ontapTLS.existingCASecret | quote }}
+            items:
+              - key: {{ $.Values.ontapTLS.caKey | quote }}
+                path: {{ $.Values.ontapTLS.caKey | quote }}
+        {{- end }}
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{ end }}

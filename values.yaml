@@ -1,0 +1,126 @@
+# NetApp Harvest v24.08.0 (image release suffix: -1).
+image:
+  repository: ghcr.io/netapp/harvest
+  tag: "24.08.0-1"
+  # Optional immutable OCI digest. When set, tag is not used in the Pod image.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# One Deployment is rendered for every entry. The schema requires at least one
+# poller. Replace this documentation-only target; examples/values-ontap.yaml
+# removes it with `configure-me: null` before adding real pollers. Its external
+# Secret intentionally does not exist, so an unmodified --atomic/--wait install
+# cannot become Ready.
+pollers:
+  configure-me:
+    datacenter: replace-me
+    addr: 192.0.2.1
+    auth:
+      username: harvest
+      existingSecret: harvest-configure-me-not-created
+      passwordKey: password
+      # Used only when secrets.create=true. Avoid this in production.
+      password: ""
+
+harvest:
+  collectors:
+    - Zapi
+    - ZapiPerf
+    - Ems
+  exporter:
+    addMetaTags: true
+    sortLabels: true
+    cacheMaxKeep: 5m
+  credentialsScript:
+    schedule: 24h
+    timeout: 10s
+  autosupportDisabled: true
+
+# Production default: Secrets are created and managed outside this release.
+secrets:
+  create: false
+
+ontapTLS:
+  verify: true
+  existingCASecret: ""
+  caKey: ca.crt
+  # Harvest 24.08 enforces this for ZAPI transports only. It is NOT a minimum
+  # TLS guarantee for Rest/RestPerf/KeyPerf; see README before relying on it.
+  minVersion: ""
+
+service:
+  type: ClusterIP
+  port: 12990
+  annotations: {}
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+  annotations: {}
+
+rollout:
+  # Change explicitly after rotating an externally managed Secret.
+  restartToken: ""
+  # Recreate prevents two pollers from collecting the same ONTAP target at once.
+  strategy:
+    type: Recreate
+
+podAnnotations: {}
+podLabels: {}
+
+# The v24.08.0 image has no USER directive. Its read-only application files are
+# usable by the distroless non-root account; Harvest logs to stdout in foreground.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources: {}
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # limits:
+  #   cpu: 1
+  #   memory: 512Mi
+
+startupProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 10
+  timeoutSeconds: 1
+
+readinessProbe:
+  enabled: true
+  failureThreshold: 3
+  periodSeconds: 10
+  timeoutSeconds: 1
+
+livenessProbe:
+  enabled: true
+  failureThreshold: 3
+  periodSeconds: 30
+  timeoutSeconds: 1
+
+nodeSelector:
+  # The official 24.08.0-1 image is published as a single linux/amd64 manifest.
+  kubernetes.io/arch: amd64
+tolerations: []
+affinity: {}
+priorityClassName: ""
+terminationGracePeriodSeconds: 30

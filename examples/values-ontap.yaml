@@ -1,0 +1,40 @@
+pollers:
+  # Remove the documentation-only default entry from values.yaml.
+  configure-me: null
+  cluster01:
+    datacenter: dc1
+    addr: 10.10.10.10
+    auth:
+      username: harvest
+      existingSecret: harvest-cluster01
+      passwordKey: password
+  cluster02:
+    datacenter: dc1
+    addr: 10.10.10.11
+    auth:
+      username: harvest
+      existingSecret: harvest-cluster02
+      passwordKey: password
+
+secrets:
+  create: false
+
+ontapTLS:
+  verify: true
+  existingCASecret: ontap-ca
+  caKey: ca.crt
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: kube-prometheus-stack
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 1
+    memory: 512Mi

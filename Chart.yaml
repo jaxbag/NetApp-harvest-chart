@@ -1,0 +1,15 @@
+apiVersion: v2
+name: harvest
+description: Production-oriented Helm chart for NetApp Harvest pollers
+type: application
+version: 0.2.0
+appVersion: "24.08.0"
+home: https://netapp.github.io/harvest/24.08/
+sources:
+  - https://github.com/NetApp/harvest/tree/v24.08.0
+keywords:
+  - netapp
+  - ontap
+  - prometheus
+  - monitoring
+maintainers: []
