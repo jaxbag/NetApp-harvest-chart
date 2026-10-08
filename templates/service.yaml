@@ -1,20 +1,28 @@
+{{- range $name, $poller := .Values.pollers }}
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "harvest.fullname" . | quote }}
+  name: {{ printf "%s-%s" (include "harvest.fullname" $) $name | trunc 63 | trimSuffix "-" | quote }}
   labels:
-    {{- include "harvest.commonLabels" . | nindent 4 }}
-  {{- with .Values.service.annotations }}
+    {{- include "harvest.commonLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: "poller"
+    harvest.netapp.io/poller: {{ $name | quote }}
+  {{- with $.Values.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.service.type | quote }}
+  type: {{ $.Values.service.type | quote }}
+
   ports:
-    - name: "metrics"
-      port: {{ .Values.service.port }}
-      targetPort: "metrics"
-      protocol: "TCP"
+    - name: metrics
+      port: {{ $.Values.service.port }}
+      targetPort: metrics
+      protocol: TCP
+
   selector:
-    {{- include "harvest.selectorLabels" . | nindent 4 }}
+    {{- include "harvest.selectorLabels" $ | nindent 4 }}
     app.kubernetes.io/component: "poller"
+    harvest.netapp.io/poller: {{ $name | quote }}
+{{- end }}
